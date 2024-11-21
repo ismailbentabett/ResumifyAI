@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-import OgImage from '../public/banner.jpeg';
+import OgImage from '../public/banner.png';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { Analytics } from '@vercel/analytics/react';
