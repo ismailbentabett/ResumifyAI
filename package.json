@@ -58,7 +58,7 @@
     "jspdf": "^2.5.1",
     "lucide-react": "^0.446.0",
     "mime": "^4.0.4",
-    "next": "13.5.1",
+    "next": "13.5.7",
     "next-themes": "^0.3.0",
     "openai": "^4.73.0",
     "pdf-parse": "^1.1.1",
