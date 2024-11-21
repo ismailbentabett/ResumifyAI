@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateObject } from 'ai';
-import { createVertex } from '@ai-sdk/google-vertex';
+import OpenAI from 'openai';
 import { z } from 'zod';
 
 import { join } from 'path';
@@ -11,17 +10,9 @@ import { ratelimit } from '@/lib/rate-limit';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-// Initialize Vertex AI
-const vertex = createVertex({
-  project: process.env.GOOGLE_PROJECT_ID,
-  location: process.env.GOOGLE_REGION ?? 'us-central1',
-  googleAuthOptions: {
-    credentials: JSON.parse(
-      Buffer.from(process.env.GOOGLE_CREDENTIALS ?? '{}', 'base64').toString(
-        'utf-8'
-      )
-    ),
-  },
+// Initialize OpenAI Client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 const SYSTEM_PROMPT = `You are an expert resume reviewer with extensive experience in talent acquisition and career counseling. Analyze the provided resume and provide a detailed assessment with the following structure:
@@ -51,6 +42,7 @@ For each section, provide:
 
 Focus on actionable insights and quantifiable metrics. Be specific and professional.`;
 
+// Helper function to ensure directory exists
 async function ensureDirectoryExists(path: string) {
   try {
     await stat(path);
@@ -60,22 +52,10 @@ async function ensureDirectoryExists(path: string) {
 }
 
 export async function POST(req: NextRequest) {
-  // const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'localhost';
-  // const { success, remaining } = await ratelimit.limit(`resume-reviewer-${ip}`);
-
-  // if (!success) {
-  //   return NextResponse.json(
-  //     {
-  //       error:
-  //         'You have exceeded the maximum number of requests allowed. Try again in 1 hour.',
-  //       remaining,
-  //     },
-  //     { status: 429 }
-  //   );
-  // }
-
   let filePath: string | null = null;
+
   try {
+    // Parse the uploaded file
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
 
@@ -92,6 +72,7 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
+    // Handle file upload
     let uploadDir = join(process.cwd(), 'public', 'uploads');
     if (IS_PROD) {
       uploadDir = '/tmp';
@@ -106,164 +87,55 @@ export async function POST(req: NextRequest) {
     )}-${uniqueSuffix}.${mime.getExtension(file.type)}`;
     filePath = join(uploadDir, filename);
 
-    // Write the file to disk with Buffer
     await writeFile(filePath, new Uint8Array(buffer));
 
-    const { object: check } = await generateObject({
-      model: vertex('gemini-1.5-flash-002'),
-      system: `
-        You are an expert in file validation and data processing. Check whether the file is a resume or not.
-        Resume files are typically in PDF format and contain information about a person's work experience, education, and skills.
-        Resume must have information about the person's contact details, such as name, email, address, and maybe phone number.
-      `,
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+
+    // Validate if the file is a resume
+    const validationResponse = await openai.chat.completions.create({
+      model: 'gpt-4o',
       messages: [
         {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Check whether the file is a resume or not.',
-            },
-            {
-              type: 'file',
-              data: fs.readFileSync(filePath),
-              mimeType: 'application/pdf',
-            },
-          ],
+          role: 'system',
+          content: `
+            You are an expert in file validation and data processing. Check whether the file is a resume or not.
+            Resume files typically contain information about work experience, education, skills, and projects.
+          `,
         },
-      ],
-      schema: z.object({
-        isResume: z.boolean().describe('Whether the file is a resume'),
-        confidence: z.number().min(0).max(1).describe('Confidence score'),
-      }),
-    });
-
-    if (!check.isResume) {
-      throw new Error('The provided file is not a resume');
-    }
-
-    if (check.confidence <= 0.85) {
-      throw new Error('The provided file does not seem to be a resume');
-    }
-
-    const fileUrl = join(uploadDir, filename);
-    const { object: analysis } = await generateObject({
-      model: vertex('gemini-1.5-flash-002'),
-      system: SYSTEM_PROMPT,
-      messages: [
         {
           role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Analyze the resume provided in the file.',
-            },
-            {
-              type: 'file',
-              data: fs.readFileSync(fileUrl),
-              mimeType: 'application/pdf',
-            },
-          ],
+          content: `Please validate the following file content: \n\n${fileContent}`,
         },
       ],
-      temperature: 0.4,
-      maxTokens: 2048,
-      topK: 40,
-      topP: 0.8,
-      schema: z.object({
-        scores: z.object({
-          overall: z.number().min(0).max(100).describe('Overall score'),
-          experience: z.number().min(0).max(100).describe('Experience score'),
-          education: z.number().min(0).max(100).describe('Education score'),
-          skills: z.number().min(0).max(100).describe('Skills score'),
-          projects: z.number().min(0).max(100).describe('Projects score'),
-          impact: z.number().min(0).max(100).describe('Impact score'),
-          format: z.number().min(0).max(100).describe('Format score'),
-        }),
-        sections: z.object({
-          impact: z.object({
-            strengths: z.array(z.string()).describe('Impact strengths'),
-            improvements: z.array(z.string()).describe('Impact improvements'),
-          }),
-          education: z.object({
-            strengths: z.array(z.string()).describe('Education strengths'),
-            improvements: z
-              .array(z.string())
-              .describe('Education improvements'),
-          }),
-          projects: z.object({
-            strengths: z.array(z.string()).describe('Projects strengths'),
-            improvements: z.array(z.string()).describe('Projects improvements'),
-          }),
-          skills: z.object({
-            strengths: z.array(z.string()).describe('Skills strengths'),
-            improvements: z.array(z.string()).describe('Skills improvements'),
-          }),
-          experience: z.object({
-            strengths: z.array(z.string()).describe('Experience strengths'),
-            improvements: z
-              .array(z.string())
-              .describe('Experience improvements'),
-          }),
-          format: z.object({
-            strengths: z.array(z.string()).describe('Format strengths'),
-            improvements: z.array(z.string()).describe('Format improvements'),
-          }),
-        }),
-        recommendations: z.array(z.string()).describe('Recommendations'),
-      }),
     });
 
-    // Transform the analysis into the expected format
+    const validationMessage =
+      validationResponse.choices[0]?.message?.content || '';
+    if (!validationMessage.includes('true')) {
+      throw new Error('The provided file does not appear to be a valid resume');
+    }
+
+    // Analyze the resume
+    const analysisResponse = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: `Analyze the following resume content: \n\n${fileContent}`,
+        },
+      ],
+    });
+
+    const analysisMessage =
+      analysisResponse.choices[0]?.message?.content || '';
+    if (!analysisMessage) {
+      throw new Error('Failed to analyze the resume content.');
+    }
+
+    // Return the analysis result
     const formattedAnalysis = {
-      scores: [
-        { label: 'Overall', score: analysis.scores.overall, color: '#f97316' },
-        {
-          label: 'Experience',
-          score: analysis.scores.experience,
-          color: '#f97316',
-        },
-        {
-          label: 'Education',
-          score: analysis.scores.education,
-          color: '#f97316',
-        },
-        { label: 'Skills', score: analysis.scores.skills, color: '#f97316' },
-        {
-          label: 'Projects',
-          score: analysis.scores.projects,
-          color: '#f97316',
-        },
-        { label: 'Impact', score: analysis.scores.impact, color: '#f97316' },
-        { label: 'Format', score: analysis.scores.format, color: '#f97316' },
-      ],
-      analysis: {
-        impact: {
-          strengths: analysis.sections.impact.strengths,
-          improvements: analysis.sections.impact.improvements,
-        },
-        education: {
-          strengths: analysis.sections.education.strengths,
-          improvements: analysis.sections.education.improvements,
-        },
-        projects: {
-          strengths: analysis.sections.projects.strengths,
-          improvements: analysis.sections.projects.improvements,
-        },
-        skills: {
-          strengths: analysis.sections.skills.strengths,
-          improvements: analysis.sections.skills.improvements,
-        },
-        experience: {
-          strengths: analysis.sections.experience.strengths,
-          improvements: analysis.sections.experience.improvements,
-        },
-        format: {
-          strengths: analysis.sections.format.strengths,
-          improvements: analysis.sections.format.improvements,
-        },
-        recommendations: analysis.recommendations,
-      },
+      analysis: analysisMessage,
     };
 
     if (filePath) {
