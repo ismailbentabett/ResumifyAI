@@ -92,9 +92,4 @@ This project is licensed under the [MIT License](./LICENSE).
 
 ## 🖼️ Sneak Peek  
 
-![ResumifyAI](https://via.placeholder.com/800x400.png?text=ResumifyAI+Demo+Placeholder)
-
----
-
-Take your resume to the next level with **ResumifyAI**! 🌟  
-[👉 Get Started Now!](http://localhost:3000)
+![ResumifyAI](https://raw.githubusercontent.com/ismailbentabett/ResumifyAI/refs/heads/main/public/banner.png)
