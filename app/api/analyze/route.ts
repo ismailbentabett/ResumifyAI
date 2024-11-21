@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { join } from 'path';
 import { stat, mkdir, writeFile, unlink } from 'fs/promises';
 import mime from 'mime';
 import fs from 'fs';
-import pdfParse from 'pdf-parse'; // For parsing PDF files
-import OpenAI from 'openai';
-
-// ** Import OpenAI correctly **
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-// ** Initialize OpenAI API correctly **
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 const SYSTEM_PROMPT = `You are an expert resume reviewer with extensive experience in talent acquisition and career counseling. Analyze the provided resume and provide a detailed assessment with the following structure:
 
 1. Numerical scores (0-100) for:
@@ -35,14 +28,14 @@ const SYSTEM_PROMPT = `You are an expert resume reviewer with extensive experien
    - Format & Structure
 
 For each section, provide:
-   - specific strengths if needed
-   - specific areas for improvement if needed
+   - Specific strengths
+   - Areas for improvement
 
 3. Key recommendations for improvement
 
 Focus on actionable insights and quantifiable metrics. Be specific and professional.`;
 
-async function ensureDirectoryExists(path) {
+async function ensureDirectoryExists(path: string) {
   try {
     await stat(path);
   } catch {
@@ -50,21 +43,45 @@ async function ensureDirectoryExists(path) {
   }
 }
 
-export async function POST(req) {
-  let filePath = null;
+async function callOpenAIAPI(prompt: string) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: prompt }],
+      max_tokens: 2048,
+      temperature: 0.4,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`OpenAI API Error: ${error.error.message}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+export async function POST(req: NextRequest) {
+  let filePath: string | null = null;
   try {
     const formData = await req.formData();
-    const file = formData.get('file');
+    const file = formData.get('file') as File | null;
 
     if (!file) {
       return NextResponse.json(
-        { error: 'Invalid resume file provided' },
+        { error: 'No resume file provided' },
         { status: 400 }
       );
     }
 
     if (file.size > 3 * 1024 * 1024) {
-      throw new Error('The provided file exceeds the maximum file size of 3MB');
+      throw new Error('The provided file exceeds the maximum size of 3MB');
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -83,148 +100,63 @@ export async function POST(req) {
     )}-${uniqueSuffix}.${mime.getExtension(file.type)}`;
     filePath = join(uploadDir, filename);
 
-    await writeFile(filePath, new Uint8Array(buffer));
+    await writeFile(filePath, buffer);
 
-    // Extract text from the file
-    let resumeText = '';
-    if (file.type === 'application/pdf') {
-      const dataBuffer = fs.readFileSync(filePath);
-      const pdfData = await pdfParse(dataBuffer);
-      resumeText = pdfData.text;
-    } else if (file.type === 'text/plain') {
-      resumeText = fs.readFileSync(filePath, 'utf-8');
-    } else {
-      throw new Error('Unsupported file type. Please upload a PDF or text file.');
+    const fileData = fs.readFileSync(filePath, { encoding: 'base64' });
+
+    const validationPrompt = `Check whether the following base64-encoded file content is a resume. Resumes typically contain information about a person's work experience, education, and skills. File content: ${fileData}`;
+
+    const validationResponse = await callOpenAIAPI(validationPrompt);
+    const validationResult = z.object({
+      isResume: z.boolean(),
+      confidence: z.number().min(0).max(1),
+    }).parse(JSON.parse(validationResponse));
+
+    if (!validationResult.isResume || validationResult.confidence < 0.85) {
+      throw new Error('The provided file is not a valid resume');
     }
 
-    // File Validation
-    const validationResponse = await openai.createChatCompletion({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert in file validation and data processing. Analyze the following text and determine if it is a resume.
+    const analysisPrompt = `Analyze the following resume in detail and provide the assessment as specified in the system prompt. Resume content (base64): ${fileData}`;
+    const analysisResponse = await callOpenAIAPI(analysisPrompt);
 
-A resume should contain information about a person's work experience, education, skills, and contact details such as name, email, and phone number.`,
-        },
-        {
-          role: 'user',
-          content: resumeText.slice(0, 2000), // Limit to 2000 characters
-        },
-      ],
-      functions: [
-        {
-          name: 'validate_resume',
-          parameters: {
-            type: 'object',
-            properties: {
-              isResume: {
-                type: 'boolean',
-                description: 'Whether the text is a resume',
-              },
-              confidence: {
-                type: 'number',
-                description: 'Confidence score of resume validation (0 to 1)',
-              },
-            },
-            required: ['isResume', 'confidence'],
-          },
-        },
-      ],
-      function_call: { name: 'validate_resume' },
-    });
-
-    const functionCall = validationResponse.data.choices[0].message.function_call;
-    const validationResult = JSON.parse(functionCall?.arguments || '{}');
-
-    if (!validationResult.isResume || validationResult.confidence <= 0.85) {
-      throw new Error('The provided file does not seem to be a resume');
-    }
-
-    // Resume Analysis
-    const analysisResponse = await openai.createChatCompletion({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: resumeText.slice(0, 6000) }, // Limit to 6000 characters
-      ],
-      max_tokens: 2048,
-      functions: [
-        {
-          name: 'analyze_resume',
-          parameters: {
-            type: 'object',
-            properties: {
-              scores: {
-                type: 'object',
-                properties: {
-                  overall: { type: 'number', minimum: 0, maximum: 100 },
-                  experience: { type: 'number', minimum: 0, maximum: 100 },
-                  education: { type: 'number', minimum: 0, maximum: 100 },
-                  skills: { type: 'number', minimum: 0, maximum: 100 },
-                  projects: { type: 'number', minimum: 0, maximum: 100 },
-                  impact: { type: 'number', minimum: 0, maximum: 100 },
-                  format: { type: 'number', minimum: 0, maximum: 100 },
-                },
-                required: [
-                  'overall',
-                  'experience',
-                  'education',
-                  'skills',
-                  'projects',
-                  'impact',
-                  'format',
-                ],
-              },
-              sections: {
-                type: 'object',
-                properties: {
-                  impact: {
-                    type: 'object',
-                    properties: {
-                      strengths: { type: 'array', items: { type: 'string' } },
-                      improvements: { type: 'array', items: { type: 'string' } },
-                    },
-                  },
-                  experience: {
-                    type: 'object',
-                    properties: {
-                      strengths: { type: 'array', items: { type: 'string' } },
-                      improvements: { type: 'array', items: { type: 'string' } },
-                    },
-                  },
-                  // Add other sections as needed
-                },
-              },
-              recommendations: { type: 'array', items: { type: 'string' } },
-            },
-            required: ['scores', 'sections', 'recommendations'],
-          },
-        },
-      ],
-      function_call: { name: 'analyze_resume' },
-    });
-
-    const functionAnalysisCall = analysisResponse.data.choices[0].message.function_call;
-    const analysis = JSON.parse(functionAnalysisCall?.arguments || '{}');
-
-    const formattedAnalysis = {
-      scores: [
-        { label: 'Overall', score: analysis.scores.overall, color: '#f97316' },
-        { label: 'Experience', score: analysis.scores.experience, color: '#f97316' },
-        { label: 'Education', score: analysis.scores.education, color: '#f97316' },
-        { label: 'Skills', score: analysis.scores.skills, color: '#f97316' },
-        { label: 'Projects', score: analysis.scores.projects, color: '#f97316' },
-        { label: 'Impact', score: analysis.scores.impact, color: '#f97316' },
-        { label: 'Format', score: analysis.scores.format, color: '#f97316' },
-      ],
-      analysis: {
-        impact: analysis.sections.impact,
-        experience: analysis.sections.experience,
-        // Include other sections as needed
-        recommendations: analysis.recommendations,
-      },
-    };
+    const analysisResult = z.object({
+      scores: z.object({
+        overall: z.number().min(0).max(100),
+        experience: z.number().min(0).max(100),
+        education: z.number().min(0).max(100),
+        skills: z.number().min(0).max(100),
+        projects: z.number().min(0).max(100),
+        impact: z.number().min(0).max(100),
+        format: z.number().min(0).max(100),
+      }),
+      sections: z.object({
+        impact: z.object({
+          strengths: z.array(z.string()),
+          improvements: z.array(z.string()),
+        }),
+        education: z.object({
+          strengths: z.array(z.string()),
+          improvements: z.array(z.string()),
+        }),
+        projects: z.object({
+          strengths: z.array(z.string()),
+          improvements: z.array(z.string()),
+        }),
+        skills: z.object({
+          strengths: z.array(z.string()),
+          improvements: z.array(z.string()),
+        }),
+        experience: z.object({
+          strengths: z.array(z.string()),
+          improvements: z.array(z.string()),
+        }),
+        format: z.object({
+          strengths: z.array(z.string()),
+          improvements: z.array(z.string()),
+        }),
+      }),
+      recommendations: z.array(z.string()),
+    }).parse(JSON.parse(analysisResponse));
 
     if (filePath) {
       try {
@@ -234,7 +166,7 @@ A resume should contain information about a person's work experience, education,
       }
     }
 
-    return NextResponse.json(formattedAnalysis);
+    return NextResponse.json(analysisResult);
   } catch (error) {
     console.error('Error analyzing resume:', error);
     if (filePath) {
