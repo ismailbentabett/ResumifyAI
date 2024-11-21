@@ -93,8 +93,3 @@ This project is licensed under the [MIT License](./LICENSE).
 ## 🖼️ Sneak Peek  
 
 ![ResumifyAI](https://raw.githubusercontent.com/ismailbentabett/ResumifyAI/refs/heads/main/public/banner.png)
-
----
-
-Take your resume to the next level with **ResumifyAI**! 🌟  
-[👉 Get Started Now!](http://localhost:3000)
