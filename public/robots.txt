@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ResumifyAI.ismailbentabett.com/sitemap.xml
+Sitemap: https://resumify-ai.vercel.app//sitemap.xml

@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://ResumifyAI.ismailbentabett.com'),
+  metadataBase: new URL('https://resumify-ai.vercel.app/'),
   title: {
     default: 'ResumifyAI - Professional Resume Analysis Tool',
     template: '%s | ResumifyAI',
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://ResumifyAI.ismailbentabett.com',
+    url: 'https://resumify-ai.vercel.app/',
     title: 'ResumifyAI - Professional Resume Analysis Tool',
     description: 
       'Transform your resume with AI-powered insights. Get instant, professional feedback to stand out in your job search.',
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: 'https://ResumifyAI.ismailbentabett.com',
+    canonical: 'https://resumify-ai.vercel.app/',
   },
 };
 
