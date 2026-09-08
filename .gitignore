@@ -60,7 +60,6 @@ chrome-user-data
 *.sublime-workspace
 .idea
 *.iml
-.vscode
 *.swp
 *.swo
 
@@ -80,7 +79,7 @@ packages/react-devtools-timeline/dist
 
 
 
-.env
 branch_structure.json
 temp_auto_push.bat
 temp_interactive_push.bat
+config.bat
