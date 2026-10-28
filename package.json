@@ -55,7 +55,7 @@
     "eslint": "8.49.0",
     "eslint-config-next": "13.5.1",
     "input-otp": "^1.2.4",
-    "jspdf": "^2.5.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.446.0",
     "mime": "^4.0.4",
     "next": "13.5.1",
