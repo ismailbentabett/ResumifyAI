@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="ResumifyAI logo">
+  <title>ResumifyAI logo</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#tile)"/>
+  <rect width="256" height="128" rx="56" fill="url(#shine)"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M136 48H88a16 16 0 0 0-16 16v128a16 16 0 0 0 16 16h40"/>
+    <path d="M136 48l40 40v32"/>
+    <path d="M136 48v28a12 12 0 0 0 12 12h28"/>
+  </g>
+  <g fill="#FFFFFF">
+    <rect x="98" y="116" width="52" height="13" rx="6.5"/>
+    <rect x="98" y="144" width="34" height="13" rx="6.5" opacity="0.6"/>
+    <path d="M184 140C188.5 164 196 171.5 220 176C196 180.5 188.5 188 184 212C179.5 188 172 180.5 148 176C172 171.5 179.5 164 184 140Z"/>
+  </g>
+</svg>
