@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-label="ResumifyAI banner">
+  <title>ResumifyAI</title>
+  <defs>
+    <clipPath id="frame">
+      <rect width="1280" height="400" rx="24"/>
+    </clipPath>
+    <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366F1" stop-opacity="0"/>
+      <stop offset="0.55" stop-color="#6366F1" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.5" fill="#FFFFFF"/>
+    </pattern>
+    <radialGradient id="glow" cx="0.18" cy="0.5" r="0.35">
+      <stop offset="0" stop-color="#6366F1" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#6366F1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="1280" height="400" fill="#0B0F19"/>
+    <rect width="1280" height="400" fill="url(#wash)"/>
+    <rect width="1280" height="400" fill="url(#dots)" opacity="0.06"/>
+    <rect width="1280" height="400" fill="url(#glow)"/>
+  </g>
+  <rect x="0.5" y="0.5" width="1279" height="399" rx="24" fill="none" stroke="#FFFFFF" stroke-opacity="0.08"/>
+  <g transform="translate(96 72) scale(0.9765625)">
+    <rect width="256" height="256" rx="56" fill="url(#tile)"/>
+    <rect width="256" height="128" rx="56" fill="url(#shine)"/>
+    <g fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M136 48H88a16 16 0 0 0-16 16v128a16 16 0 0 0 16 16h40"/>
+      <path d="M136 48l40 40v32"/>
+      <path d="M136 48v28a12 12 0 0 0 12 12h28"/>
+    </g>
+    <g fill="#FFFFFF">
+      <rect x="98" y="116" width="52" height="13" rx="6.5"/>
+      <rect x="98" y="144" width="34" height="13" rx="6.5" opacity="0.6"/>
+      <path d="M184 140C188.5 164 196 171.5 220 176C196 180.5 188.5 188 184 212C179.5 188 172 180.5 148 176C172 171.5 179.5 164 184 140Z"/>
+    </g>
+  </g>
+  <text x="358" y="176" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="70" font-weight="800" fill="#FFFFFF" letter-spacing="-1.5">ResumifyAI</text>
+  <text x="360" y="230" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#A1A8B8">AI resume reviews with scores, insights and a PDF report</text>
+  <g>
+    <rect x="360" y="276" width="103" height="40" rx="20" fill="#6366F1" fill-opacity="0.10" stroke="#6366F1" stroke-width="1"/>
+    <text x="411.5" y="302" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#E5E7EB">Next.js</text>
+    <rect x="477" y="276" width="131" height="40" rx="20" fill="#6366F1" fill-opacity="0.10" stroke="#6366F1" stroke-width="1"/>
+    <text x="542.5" y="302" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#E5E7EB">TypeScript</text>
+    <rect x="622" y="276" width="160" height="40" rx="20" fill="#6366F1" fill-opacity="0.10" stroke="#6366F1" stroke-width="1"/>
+    <text x="702" y="302" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#E5E7EB">OpenAI GPT-4o</text>
+    <rect x="796" y="276" width="120" height="40" rx="20" fill="#6366F1" fill-opacity="0.10" stroke="#6366F1" stroke-width="1"/>
+    <text x="856" y="302" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#E5E7EB">shadcn/ui</text>
+    <rect x="930" y="276" width="150" height="40" rx="20" fill="#6366F1" fill-opacity="0.10" stroke="#6366F1" stroke-width="1"/>
+    <text x="1005" y="302" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#E5E7EB">Tailwind CSS</text>
+  </g>
+</svg>
